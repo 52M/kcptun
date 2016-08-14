@@ -87,6 +87,10 @@ func checkError(err error) {
 
 func main() {
 	rand.Seed(int64(time.Now().Nanosecond()))
+	if VERSION == "SELFBUILD" {
+		// add more log flags for debugging
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+	}
 	myApp := cli.NewApp()
 	myApp.Name = "kcptun"
 	myApp.Usage = "kcptun client"
@@ -248,6 +252,14 @@ func main() {
 		log.Println("keepalive:", keepalive)
 		log.Println("conn:", conn)
 
+		config := &yamux.Config{
+			AcceptBacklog:          256,
+			EnableKeepAlive:        true,
+			KeepAliveInterval:      30 * time.Second,
+			ConnectionWriteTimeout: 30 * time.Second,
+			MaxStreamWindowSize:    uint32(sockbuf),
+			LogOutput:              os.Stderr,
+		}
 		createConn := func() *yamux.Session {
 			kcpconn, err := kcp.DialWithOptions(remoteaddr, block, datashard, parityshard)
 			checkError(err)
@@ -269,14 +281,6 @@ func main() {
 			}
 
 			// stream multiplex
-			config := &yamux.Config{
-				AcceptBacklog:          256,
-				EnableKeepAlive:        true,
-				KeepAliveInterval:      30 * time.Second,
-				ConnectionWriteTimeout: 30 * time.Second,
-				MaxStreamWindowSize:    16777216,
-				LogOutput:              os.Stderr,
-			}
 			var session *yamux.Session
 			if nocomp {
 				session, err = yamux.Client(kcpconn, config)
@@ -302,8 +306,8 @@ func main() {
 			if err != nil { // yamux failure
 				log.Println(err)
 				p1.Close()
-				mux.Close()
 				muxes[rr%numconn] = createConn()
+				mux.Close()
 				continue
 			}
 			go handleClient(p1, p2)

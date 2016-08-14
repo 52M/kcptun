@@ -42,15 +42,15 @@
 ![client](client.png)
 ![server](server.png)
 
-### *推荐参数* :lollipop: 
-```
-适用大部分ADSL接入（非对称上下行）的参数（实验环境电信100M ADSL）
-其它带宽请按比例调整，比如 50M ADSL，把 CLIENT 的 -sndwnd -rcvwnd 减掉一半，SERVER 不变
+### *参数调整* :lollipop: 
+***两端参数必须一致的有:***
+* datashard
+* parityshard
+* nocomp
+* key
+* crypt
 
-SERVER:   -mtu 1400 -sndwnd 2048 -rcvwnd 2048 -mode fast2
-CLIENT:   -mtu 1400 -sndwnd 256 -rcvwnd 2048 -mode fast2 -dscp 46
-*巭孬嫑乱动* 
-```
+其余为两边可独立设定的参数
 
 *简易自我调优方法*：
 > 第一步：同时在两端逐步增大client rcvwnd和server sndwnd;        
@@ -188,7 +188,7 @@ type Snmp struct {
 
 对该项目的捐款将用于[gonet/2](http://gonet2.github.io/)游戏服务器框架的研发。     
 
-> 特别感谢: 郑H立, 南D风, Li, 七q, 凌J，昶，Les*ables 等，名字已做特殊处理。
+```特别感谢: 郑H立, 南D风, Li, 七q, 凌J，昶，Les*ables, Ky*n等，名字已做特殊处理。```
 
 ### *参考资料* :paperclip:
 1. https://github.com/skywind3000/kcp -- KCP - A Fast and Reliable ARQ Protocol.

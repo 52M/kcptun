@@ -53,23 +53,13 @@ func newCompStream(conn net.Conn) *compStream {
 }
 
 // handle multiplex-ed connection
-func handleMux(conn io.ReadWriteCloser, target string) {
+func handleMux(conn io.ReadWriteCloser, target string, config *yamux.Config) {
 	// stream multiplex
-	var mux *yamux.Session
-	config := &yamux.Config{
-		AcceptBacklog:          256,
-		EnableKeepAlive:        true,
-		KeepAliveInterval:      30 * time.Second,
-		ConnectionWriteTimeout: 30 * time.Second,
-		MaxStreamWindowSize:    16777216,
-		LogOutput:              os.Stderr,
-	}
-	m, err := yamux.Server(conn, config)
+	mux, err := yamux.Server(conn, config)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	mux = m
 	defer mux.Close()
 
 	for {
@@ -115,6 +105,10 @@ func handleClient(p1, p2 io.ReadWriteCloser) {
 
 func main() {
 	rand.Seed(int64(time.Now().Nanosecond()))
+	if VERSION == "SELFBUILD" {
+		// add more log flags for debugging
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+	}
 	myApp := cli.NewApp()
 	myApp.Name = "kcptun"
 	myApp.Usage = "kcptun server"
@@ -276,7 +270,14 @@ func main() {
 		if err := lis.SetWriteBuffer(sockbuf); err != nil {
 			log.Println("SetWriteBuffer:", err)
 		}
-
+		config := &yamux.Config{
+			AcceptBacklog:          256,
+			EnableKeepAlive:        true,
+			KeepAliveInterval:      30 * time.Second,
+			ConnectionWriteTimeout: 30 * time.Second,
+			MaxStreamWindowSize:    uint32(sockbuf),
+			LogOutput:              os.Stderr,
+		}
 		for {
 			if conn, err := lis.Accept(); err == nil {
 				log.Println("remote address:", conn.RemoteAddr())
@@ -288,9 +289,9 @@ func main() {
 				conn.SetKeepAlive(keepalive)
 
 				if nocomp {
-					go handleMux(conn, target)
+					go handleMux(conn, target, config)
 				} else {
-					go handleMux(newCompStream(conn), target)
+					go handleMux(newCompStream(conn), target, config)
 				}
 			} else {
 				log.Println(err)
